@@ -15,7 +15,7 @@ var err error
 func init() {
 	// 加载词库
 	var f *os.File
-	f, err = os.Open("../sense.json")
+	f, err = os.Open("sense.json")
 	if err != nil {
 		panic(err)
 	}

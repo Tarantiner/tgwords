@@ -20,6 +20,10 @@ func handle(mp *sync.Map, msgString string) {
 		if count <= 0 {
 			continue
 		}
+		// 若属于特别敏感词库，则频数翻倍
+		if _, ok := specialWords[word]; ok {
+			count*=2
+		}
 		if n, ok := (*mp).Load(word); ok {
 			if n, ok := n.(int); ok {
 				(*mp).Store(word, n+count)
@@ -123,19 +127,19 @@ func handleGroup(info *MetaGroup) {
 		if v == current { // 去重
 			continue
 		}
-		if wordLis, ok := m[v]; ok {
+		if words, ok := m[v]; ok {
 			current = v
-			if len(Top100)+len(wordLis) > 100 {
-				Top100 = append(Top100, wordLis[:100-len(Top100)]...)
+			if len(Top100)+len(words) > 100 {
+				Top100 = append(Top100, words[:100-len(Top100)]...)
 				break
 			} else {
-				Top100 = append(Top100, wordLis...)
+				Top100 = append(Top100, words...)
 				if len(Top20) == 20 {
 					continue
-				} else if len(Top20)+len(wordLis) > 20 {
-					Top20 = append(Top20, wordLis[:20-len(Top20)]...)
+				} else if len(Top20)+len(words) > 20 {
+					Top20 = append(Top20, words[:20-len(Top20)]...)
 				} else {
-					Top20 = append(Top20, wordLis...)
+					Top20 = append(Top20, words...)
 				}
 			}
 		}

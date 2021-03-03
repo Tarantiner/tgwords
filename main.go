@@ -1,12 +1,10 @@
 package main
 
 import (
-	"encoding/json"
 	"flag"
 	"fmt"
 	"gopkg.in/olivere/elastic.v3"
 	"log"
-	"os"
 	"strings"
 	"time"
 )
@@ -19,26 +17,20 @@ type Info struct {
 var maxWorker int
 var test_uid string
 var client *elastic.Client
-var wordLis []string
+var wordLis = make([]string, 0, 120000)
+var specialWords = make(map[string]int, 1000)  // map类型方便快速检索
 
 func init() {
+	// 解析命令参数
 	flag.IntVar(&maxWorker, "w", 10, "处理每个群组分词的go协程数量")
 	flag.StringVar(&test_uid, "test_uid", "", "测试模式下指定需要测试的群组ID，测试模式不会更新ES")
 	flag.Parse()
-	var err error
+
 	// 加载词库
-	f, err := os.Open("sense.json")
-	if err != nil {
-		panic(err)
-	}
-	defer f.Close()
-	dd := json.NewDecoder(f)
-	err = dd.Decode(&wordLis)
-	if err != nil {
-		panic(err)
-	}
+	loadWords()
 
 	// 初始化es
+	var err error
 	client, err = elastic.NewClient(elastic.SetURL("http://172.16.100.6:9200", "http://172.16.100.7:9200", "http://172.16.100.8:9200"))
 	if err != nil {
 		panic(err)
