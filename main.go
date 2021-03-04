@@ -15,15 +15,18 @@ type Info struct {
 }
 
 var maxWorker int
+var minCount int64
 var test_uid string
 var client *elastic.Client
 var wordLis = make([]string, 0, 120000)
 var specialWords = make(map[string]int, 1000)  // map类型方便快速检索
+// 1244136556  1493776399  1119449737  1271536028  1492155360
 
 func init() {
 	// 解析命令参数
-	flag.IntVar(&maxWorker, "w", 10, "处理每个群组分词的go协程数量")
-	flag.StringVar(&test_uid, "test_uid", "", "测试模式下指定需要测试的群组ID，测试模式不会更新ES")
+	flag.IntVar(&maxWorker, "worker", 8, "处理每个群组分词的go协程数量")
+	flag.StringVar(&test_uid, "testUID", "", "测试模式下指定需要测试的群组ID，测试模式不会更新ES")
+	flag.Int64Var(&minCount, "minCount", -1, "解析聊天数在minCount到minCount+100000间的群组，-1表示解析所有群组")
 	flag.Parse()
 
 	// 加载词库

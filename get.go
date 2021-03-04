@@ -20,7 +20,12 @@ func getGroups() (groupIDList []*MetaGroup, err error) {
 		q := elastic.NewTermQuery("uid", test_uid)
 		scroll = client.Scroll("group_channel_entity").Type("info").Query(q).FetchSourceContext(fsc).Size(1)
 	}else{
-		scroll = client.Scroll("group_channel_entity").Type("info").FetchSourceContext(fsc).Size(500)
+		if minCount == -1 {
+			scroll = client.Scroll("group_channel_entity").Type("info").FetchSourceContext(fsc).Size(500)
+		}else{
+			q := elastic.NewRangeQuery("msg_cnt").Gt(minCount).Lte(minCount+100000)
+			scroll = client.Scroll("group_channel_entity").Type("info").Query(q).FetchSourceContext(fsc).Size(500)
+		}
 	}
 
 	for {
@@ -43,6 +48,5 @@ func getGroups() (groupIDList []*MetaGroup, err error) {
 				groupIDList = append(groupIDList, &info)
 			}
 		}
-		return groupIDList, nil
 	}
 }

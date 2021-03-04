@@ -49,7 +49,7 @@ func handleGroup(info *MetaGroup) {
 		q := elastic.NewBoolQuery()
 		q.Must(elastic.NewTermQuery("to", info.UID))
 		q.Must(elastic.NewTermQuery("msgtype", "text"))
-		scroll := client.Scroll("app_chatinfo_02").Type("info").Query(q).FetchSourceContext(fsc).Size(1000)
+		scroll := client.Scroll("app_chatinfo_01", "app_chatinfo_02", "app_chatinfo_03").Type("info").Query(q).FetchSourceContext(fsc).Size(1000)
 		for i := 0; i < 1000; i++ { // 表示最多解析100万条聊天记录
 			results, err := scroll.Do()
 			if err == io.EOF {
