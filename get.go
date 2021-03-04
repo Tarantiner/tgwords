@@ -23,7 +23,7 @@ func getGroups() (groupIDList []*MetaGroup, err error) {
 		if minCount == -1 {
 			scroll = client.Scroll("group_channel_entity").Type("info").FetchSourceContext(fsc).Size(500)
 		}else{
-			q := elastic.NewRangeQuery("msg_cnt").Gt(minCount).Lte(minCount+100000)
+			q := elastic.NewRangeQuery("msg_cnt").Gt(minCount).Lte(minCount+limit)
 			scroll = client.Scroll("group_channel_entity").Type("info").Query(q).FetchSourceContext(fsc).Size(500)
 		}
 	}
