@@ -51,7 +51,7 @@ func main() {
 		log.Println("无群组ID")
 		return
 	}
-	fmt.Println(len(groupList))
+	fmt.Printf("一共%d群组\n", len(groupList))
 	for _, groupInfo := range groupList {
 		fmt.Printf("%s群组%s共%d\n", groupInfo.EsID, groupInfo.UID, groupInfo.MsgCNT)
 		t := time.Now()

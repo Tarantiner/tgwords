@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"gopkg.in/olivere/elastic.v3"
 	"io"
-	"log"
 )
 
 type MetaGroup struct {
@@ -23,10 +22,10 @@ func getGroups() (groupIDList []*MetaGroup, err error) {
 		scroll = client.Scroll("group_channel_entity").Type("info").Query(q).FetchSourceContext(fsc).Size(1)
 	}else{
 		if minCount == -1 {
-			scroll = client.Scroll("group_channel_entity").Type("info").FetchSourceContext(fsc).Size(500)
+			scroll = client.Scroll("group_channel_entity").Type("info").FetchSourceContext(fsc).Sort("msg_cnt", true).Size(500)
 		}else{
 			q := elastic.NewRangeQuery("msg_cnt").Gt(minCount).Lte(minCount+limit)
-			scroll = client.Scroll("group_channel_entity").Type("info").Query(q).FetchSourceContext(fsc).Size(500)
+			scroll = client.Scroll("group_channel_entity").Type("info").Query(q).FetchSourceContext(fsc).Sort("msg_cnt", true).Size(500)
 		}
 	}
 
@@ -43,7 +42,7 @@ func getGroups() (groupIDList []*MetaGroup, err error) {
 			var info MetaGroup
 			err = json.Unmarshal(*hit.Source, &info)
 			if err != nil {
-				log.Fatalln("bad", err)
+				continue
 			}
 			if hit.Id != "" {
 				if info.Label == "" || test_uid != "" {
