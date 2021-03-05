@@ -4,17 +4,19 @@ import (
 	"encoding/json"
 	"gopkg.in/olivere/elastic.v3"
 	"io"
+	"log"
 )
 
 type MetaGroup struct {
 	 UID string `json:"uid"`
 	 MsgCNT int `json:"msg_cnt"`
 	 EsID string
+	 Label string `json:"label"`
 }
 
 // groupIDList []string
 func getGroups() (groupIDList []*MetaGroup, err error) {
-	fsc := elastic.NewFetchSourceContext(true).Include("uid", "msg_cnt") //.Exclude("*.description")
+	fsc := elastic.NewFetchSourceContext(true).Include("uid", "msg_cnt", "label") //.Exclude("*.description")
 	var scroll *elastic.ScrollService
 	if test_uid != "" {
 		q := elastic.NewTermQuery("uid", test_uid)
@@ -41,11 +43,13 @@ func getGroups() (groupIDList []*MetaGroup, err error) {
 			var info MetaGroup
 			err = json.Unmarshal(*hit.Source, &info)
 			if err != nil {
-				continue
+				log.Fatalln("bad", err)
 			}
 			if hit.Id != "" {
-				info.EsID = hit.Id
-				groupIDList = append(groupIDList, &info)
+				if info.Label == "" || test_uid != "" {
+					info.EsID = hit.Id
+					groupIDList = append(groupIDList, &info)
+				}
 			}
 		}
 	}

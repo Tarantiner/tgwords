@@ -51,12 +51,13 @@ func main() {
 		log.Println("无群组ID")
 		return
 	}
+	fmt.Println(len(groupList))
 	for _, groupInfo := range groupList {
 		fmt.Printf("%s群组%s共%d\n", groupInfo.EsID, groupInfo.UID, groupInfo.MsgCNT)
 		t := time.Now()
 		handleGroup(groupInfo)
 		fmt.Printf("%s|%s|%d|花费%f秒\n", groupInfo.EsID, groupInfo.UID, groupInfo.MsgCNT, time.Since(t).Seconds())
-		fmt.Println(strings.Repeat("#", 80))
+		fmt.Println(strings.Repeat("#", 100))
 		if test_uid != "" {
 			break
 		}
