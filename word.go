@@ -9,7 +9,7 @@ import (
 )
 
 func loadSpecialWords() {
-	db, err := sql.Open("mysql", "")
+	db, err := sql.Open("mysql", "root:1qaz2wsx@tcp(172.16.100.8:3306)/yingguang?parseTime=true&charset=utf8")
 	if err != nil {
 		panic(fmt.Errorf("无法连接到mysql:%v", err))
 	}
