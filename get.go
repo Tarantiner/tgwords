@@ -7,10 +7,10 @@ import (
 )
 
 type MetaGroup struct {
-	 UID string `json:"uid"`
-	 MsgCNT int `json:"msg_cnt"`
-	 EsID string
-	 Label string `json:"label"`
+	UID    string `json:"uid"`
+	MsgCNT int    `json:"msg_cnt"`
+	EsID   string
+	Label  string `json:"label"`
 }
 
 // groupIDList []string
@@ -20,15 +20,14 @@ func getGroups() (groupIDList []*MetaGroup, err error) {
 	if test_uid != "" {
 		q := elastic.NewTermQuery("uid", test_uid)
 		scroll = client.Scroll("group_channel_entity").Type("info").Query(q).FetchSourceContext(fsc).Size(1)
-	}else{
+	} else {
 		if minCount == -1 {
 			scroll = client.Scroll("group_channel_entity").Type("info").FetchSourceContext(fsc).Sort("msg_cnt", true).Size(500)
-		}else{
-			q := elastic.NewRangeQuery("msg_cnt").Gt(minCount).Lte(minCount+limit)
+		} else {
+			q := elastic.NewRangeQuery("msg_cnt").Gt(minCount).Lte(minCount + limit)
 			scroll = client.Scroll("group_channel_entity").Type("info").Query(q).FetchSourceContext(fsc).Sort("msg_cnt", true).Size(500)
 		}
 	}
-
 	for {
 		results, err := scroll.Do()
 		if err == io.EOF {
@@ -37,7 +36,6 @@ func getGroups() (groupIDList []*MetaGroup, err error) {
 		if err != nil {
 			return groupIDList, err // something went wrong
 		}
-
 		for _, hit := range results.Hits.Hits {
 			var info MetaGroup
 			err = json.Unmarshal(*hit.Source, &info)
@@ -45,7 +43,7 @@ func getGroups() (groupIDList []*MetaGroup, err error) {
 				continue
 			}
 			if hit.Id != "" {
-				if info.Label == "" || test_uid != "" {
+				if info.Label == "" || test_uid != "" || redo {
 					info.EsID = hit.Id
 					groupIDList = append(groupIDList, &info)
 				}

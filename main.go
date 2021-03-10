@@ -18,6 +18,7 @@ var maxWorker int
 var minCount int64
 var limit int64
 var test_uid string
+var redo bool
 var client *elastic.Client
 var wordLis = make([]string, 0, 120000)
 var specialWords = make(map[string]int, 1000)  // map类型方便快速检索
@@ -29,6 +30,7 @@ func init() {
 	flag.StringVar(&test_uid, "testUID", "", "测试模式下指定需要测试的群组ID，测试模式不会更新ES")
 	flag.Int64Var(&minCount, "minCount", -1, "最少聊天数")
 	flag.Int64Var(&limit, "limit", 100000, "聊天数区间")
+	flag.BoolVar(&redo, "redo", false, "是否爬取已存在label的群组")
 	flag.Parse()
 
 	// 加载词库

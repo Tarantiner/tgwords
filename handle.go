@@ -116,13 +116,14 @@ func handleGroup(info *MetaGroup) {
 		return true
 	})
 
-	// 对词频表进行从大到小排序
+	// 对词频表进行从大到小排序 [105, 88, 88, 76......]
 	sort.Slice(valueLis, func(i, j int) bool {
 		return valueLis[i] > valueLis[j]
 	})
 
-	// 得出前100和前20高频词
+	// 得出前100和前20高频词和前100词词频
 	current := 0
+	mm := make(map[string]int, 100)
 	for _, v := range valueLis {
 		if v == current { // 去重
 			continue
@@ -130,9 +131,15 @@ func handleGroup(info *MetaGroup) {
 		if words, ok := m[v]; ok {
 			current = v
 			if len(Top100)+len(words) > 100 {
+				for _, wd := range words[:100-len(Top100)] {
+					mm[wd] = v
+				}
 				Top100 = append(Top100, words[:100-len(Top100)]...)
 				break
 			} else {
+				for _, wd := range words {
+					mm[wd] = v
+				}
 				Top100 = append(Top100, words...)
 				if len(Top20) == 20 {
 					continue
@@ -148,13 +155,20 @@ func handleGroup(info *MetaGroup) {
 	fmt.Println(Top100)
 	fmt.Println("label标签")
 	fmt.Println(Top20)
+	fmt.Println("词频")
+	b, _ := json.Marshal(mm)
 
 	if test_uid != "" {
 		return
 	}
 
 	// 更新ES群组搜索关键词和标签
-	_, err := client.Update().Index("group_channel_entity").Type("info").Id(info.EsID).Doc(map[string]interface{}{"search_keywords": strings.Join(Top100, ","), "label": strings.Join(Top20, ",")}).Do()
+	_, err := client.Update().Index("group_channel_entity").Type("info").Id(info.EsID).
+		Doc(map[string]interface{}{
+			"search_keywords": strings.Join(Top100, ","),
+			"label": strings.Join(Top20, ","),
+			"keywords": string(b)}).
+		Do()
 	if err != nil {
 		log.Println("更新es失败", err)
 	}
