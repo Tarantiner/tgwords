@@ -1,10 +1,12 @@
 package main
 
 import (
+	"crypto/tls"
 	"flag"
 	"fmt"
 	"gopkg.in/olivere/elastic.v3"
 	"log"
+	"net/http"
 	"strings"
 	"time"
 )
@@ -22,6 +24,8 @@ var redo bool
 var client *elastic.Client
 var wordLis = make([]string, 0, 120000)
 var specialWords = make(map[string]int, 1000)  // map类型方便快速检索
+var c *http.Client
+var postURL = "https://172.16.100.8:11570/special/tag/upsert/data"
 // 1244136556  1493776399  1119449737  1271536028  1492155360
 
 func init() {
@@ -30,7 +34,7 @@ func init() {
 	flag.StringVar(&test_uid, "testUID", "", "测试模式下指定需要测试的群组ID，测试模式不会更新ES")
 	flag.Int64Var(&minCount, "minCount", -1, "最少聊天数")
 	flag.Int64Var(&limit, "limit", 100000, "聊天数区间")
-	flag.BoolVar(&redo, "redo", false, "是否爬取已存在label的群组")
+	flag.BoolVar(&redo, "redo", false, "是否爬取已存在keywords的群组")
 	flag.Parse()
 
 	// 加载词库
@@ -41,6 +45,15 @@ func init() {
 	client, err = elastic.NewClient(elastic.SetURL("http://172.16.100.6:9200", "http://172.16.100.7:9200", "http://172.16.100.8:9200"))
 	if err != nil {
 		panic(err)
+	}
+
+	// 初始化跳过认证的客户端连接
+	c = &http.Client{
+		Transport: &http.Transport{
+			TLSClientConfig: &tls.Config{
+				InsecureSkipVerify: true,
+			},
+		},
 	}
 }
 

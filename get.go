@@ -10,12 +10,13 @@ type MetaGroup struct {
 	UID    string `json:"uid"`
 	MsgCNT int    `json:"msg_cnt"`
 	EsID   string
-	Label  string `json:"label"`
+	Keywords  string `json:"keywords"`
+	Ctype string `json:"comm_type"`
 }
 
 // groupIDList []string
 func getGroups() (groupIDList []*MetaGroup, err error) {
-	fsc := elastic.NewFetchSourceContext(true).Include("uid", "msg_cnt", "label") //.Exclude("*.description")
+	fsc := elastic.NewFetchSourceContext(true).Include("uid", "msg_cnt", "keywords", "comm_type") //.Exclude("*.description")
 	var scroll *elastic.ScrollService
 	if test_uid != "" {
 		q := elastic.NewTermQuery("uid", test_uid)
@@ -43,7 +44,7 @@ func getGroups() (groupIDList []*MetaGroup, err error) {
 				continue
 			}
 			if hit.Id != "" {
-				if info.Label == "" || test_uid != "" || redo {
+				if info.Keywords == "" || test_uid != "" || redo {
 					info.EsID = hit.Id
 					groupIDList = append(groupIDList, &info)
 				}

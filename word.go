@@ -6,6 +6,7 @@ import (
 	"os"
 	_ "github.com/go-sql-driver/mysql"
 	"database/sql"
+	"strings"
 )
 
 func loadSpecialWords() {
@@ -14,30 +15,37 @@ func loadSpecialWords() {
 		panic(fmt.Errorf("无法连接到mysql:%v", err))
 	}
 	defer db.Close()
-	ret, err := db.Query("select tag from label")
+	ret, err := db.Query("select keyword from tag")
 	if err != nil {
 		panic(fmt.Errorf("执行sql失败:%v", err))
 	}
 	defer ret.Close()
 	for ret.Next() {
-		var tag string
-		err = ret.Scan(&tag)
+		var keywords string
+		err = ret.Scan(&keywords)
 		if err != nil {
 			continue
 		}
-		if tag != "" {
+		if keywords != "" {
 			// 添加到特别敏感词库
-			specialWords[tag] = 0
-		}
-		// 如果敏感词库没有收录，则添加到敏感词库
-		var F bool
-		for _, word := range wordLis {
-			if word == tag {
-				F = true
+			wordS := strings.Split(keywords, ",")
+			for _, keyword := range wordS {
+				if keyword == "" {
+					continue
+				}
+				specialWords[keyword] = 0
+
+				// 如果敏感词库没有收录，则添加到敏感词库
+				var F bool
+				for _, word := range wordLis {
+					if word == keyword {
+						F = true
+					}
+				}
+				if !F{
+					wordLis = append(wordLis, keyword)
+				}
 			}
-		}
-		if !F{
-			wordLis = append(wordLis, tag)
 		}
 	}
 }

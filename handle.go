@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"golang.org/x/net/context"
@@ -8,9 +9,12 @@ import (
 	"gopkg.in/olivere/elastic.v3"
 	"io"
 	"log"
+	"net/http"
 	"sort"
+	"strconv"
 	"strings"
 	"sync"
+	"time"
 )
 
 func handle(mp *sync.Map, msgString string) {
@@ -36,6 +40,45 @@ func handle(mp *sync.Map, msgString string) {
 
 type ChatMsg struct {
 	Msg string `json:"msg"`
+}
+
+func updateTag(tagLis []string, info *MetaGroup) {
+	if len(tagLis) == 0 {
+		return
+	}
+	dataLis := make([]string, 0, len(tagLis))
+	tm := strconv.Itoa(int(time.Now().Unix()))
+	for _, wd := range tagLis {
+		dd := map[string]string{
+			"uid":       info.UID,
+			"utype":     info.Ctype,
+			"keyword":   wd,
+			"storetime": tm,
+		}
+		_b, err := json.Marshal(dd)
+		if err != nil {
+			continue
+		}
+		dataLis = append(dataLis, string(_b))
+	}
+
+	t := map[string][]string{"tags": dataLis}
+	b, err := json.Marshal(t)
+	if err != nil {
+		log.Println("失败", err)
+		return
+	}
+	req, err := http.NewRequest("POST", postURL, bytes.NewBuffer(b))
+	if err != nil {
+		log.Println("构造请求失败", err)
+		return
+	}
+	req.Header.Set("Content-Type", "application/json")
+	_, err = c.Do(req)
+	if err != nil {
+		log.Println("请求失败", err)
+		return
+	}
 }
 
 func handleGroup(info *MetaGroup) {
@@ -98,11 +141,9 @@ func handleGroup(info *MetaGroup) {
 		return
 	}
 
-	// 搜索关键词和标签
-	Top100 := make([]string, 0, 100) // 存放前100高频词
-	Top20 := make([]string, 0, 20)   // 存放前20高频词
-	var valueLis []int               // 存放词频
-	m := make(map[int][]string, 80)  // 预开辟长度为80
+	// 关键词和标签
+	var valueLis []int               // 存放词频  [100, 100, 98...]
+	m := make(map[int][]string, 80)  // 预开辟长度为80 {100: ["xx", "yy"], 98: []}
 	mp.Range(func(key, value interface{}) bool {
 		vv := value.(int)
 		if v, ok := m[vv]; ok {
@@ -121,55 +162,43 @@ func handleGroup(info *MetaGroup) {
 		return valueLis[i] > valueLis[j]
 	})
 
-	// 得出前100和前20高频词和前100词词频
 	current := 0
 	mm := make(map[string]int, 100)
+	tagLis := make([]string, 0, 30)
 	for _, v := range valueLis {
 		if v == current { // 去重
 			continue
 		}
 		if words, ok := m[v]; ok {
 			current = v
-			if len(Top100)+len(words) > 100 {
-				for _, wd := range words[:100-len(Top100)] {
-					mm[wd] = v
+			for _, wd := range words {
+				if _, ok = specialWords[wd]; ok{
+					tagLis = append(tagLis, wd)
 				}
-				Top100 = append(Top100, words[:100-len(Top100)]...)
-				break
-			} else {
-				for _, wd := range words {
+				if len(mm) < 100 {
 					mm[wd] = v
-				}
-				Top100 = append(Top100, words...)
-				if len(Top20) == 20 {
-					continue
-				} else if len(Top20)+len(words) > 20 {
-					Top20 = append(Top20, words[:20-len(Top20)]...)
-				} else {
-					Top20 = append(Top20, words...)
 				}
 			}
 		}
 	}
-	fmt.Println("搜索关键词")
-	fmt.Println(Top100)
-	fmt.Println("label标签")
-	fmt.Println(Top20)
-	fmt.Println("词频")
 	b, _ := json.Marshal(mm)
+	fmt.Println("词频")
+	fmt.Println(len(mm), string(b))
+	fmt.Println("标签")
+	fmt.Println(len(tagLis), tagLis)
 
 	if test_uid != "" {
 		return
 	}
 
-	// 更新ES群组搜索关键词和标签
+	// 更新ES群组关键词
 	_, err := client.Update().Index("group_channel_entity").Type("info").Id(info.EsID).
-		Doc(map[string]interface{}{
-			"search_keywords": strings.Join(Top100, ","),
-			"label": strings.Join(Top20, ","),
-			"keywords": string(b)}).
-		Do()
+		Doc(map[string]interface{}{"keywords": string(b)}).Do()
+	client.Index().Index("tags").BodyJson(map[string]string{"name": "chen"})
 	if err != nil {
-		log.Println("更新es失败", err)
+		log.Println("更新es关键词失败", err)
 	}
+
+	// 更新ES tag
+	updateTag(tagLis, info)
 }
